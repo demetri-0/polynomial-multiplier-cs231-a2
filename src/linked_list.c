@@ -72,6 +72,8 @@ void insertLast(LinkedList* list, int coefficient, int exponent) {
 		list -> tail = node;
 		node -> next = NULL;
 	}
+
+	list -> size++;
 }
 
 void insertAfter(LinkedList* list, int coefficient, int exponent, int coefficientToFind, int exponentToFind) {
@@ -99,6 +101,7 @@ void insertAfter(LinkedList* list, int coefficient, int exponent, int coefficien
 			current -> next = node;
 
 			inserted = 1;
+			list -> size++;
 		}
 	}
 
@@ -128,7 +131,7 @@ void insertSorted(LinkedList* list, int coefficient, int exponent) {
 			node -> next = NULL;
 		}
 		else {
-			while (current != list -> tail && !((current -> exponent) > (node -> exponent) && (current -> next -> exponent) < (node -> exponent))) {
+			while (current != list -> tail && !((current -> exponent) >= (node -> exponent) && (current -> next -> exponent) <= (node -> exponent))) {
 				current = current -> next;
 			}
 
@@ -141,6 +144,8 @@ void insertSorted(LinkedList* list, int coefficient, int exponent) {
 		list -> tail = node;
 		node -> next = NULL;
 	}
+
+	list -> size++;
 }
 
 void deleteFirst(LinkedList* list) {
@@ -158,6 +163,8 @@ void deleteFirst(LinkedList* list) {
 		}
 
 		free(toDelete);
+
+		list -> size--;
 	}
 }
 
@@ -184,6 +191,7 @@ void deleteLast(LinkedList* list) {
 		}
 
 		free(toDelete);
+		list -> size--;
 	}
 }
 
@@ -228,6 +236,7 @@ void deleteElement(LinkedList* list, int coefficient, int exponent) {
 				current -> next = current -> next -> next;
 
 				free(toDelete);
+				list -> size--;
 			}
 		}
 	}
@@ -266,6 +275,28 @@ int containsElement(LinkedList* list, int coefficient, int exponent) {
 	return result;
 }
 
+char* toString(LinkedList* list);
+
+void combineLikeTerms(LinkedList* list) {
+
+	if (!isEmpty(list)) {
+		Node* current = list -> head;
+
+		while (current != NULL) {
+
+			Node* comparisonCurrent = current -> next;
+			while (comparisonCurrent != NULL && (comparisonCurrent -> exponent == current -> exponent)) {
+				current -> coefficient += current -> next -> coefficient;
+				deleteElement(list, comparisonCurrent -> coefficient, comparisonCurrent -> exponent);
+
+				comparisonCurrent = comparisonCurrent -> next;
+			}
+
+			current = current -> next;
+		}
+	}
+}
+
 char* toString(LinkedList* list) {
 
 	const int maxTermLength = 25;
@@ -274,6 +305,9 @@ char* toString(LinkedList* list) {
 
 	Node* current = list -> head;
 	char* term = (char*)malloc(maxTermLength * sizeof(char));
+	sprintf(term, "(%dx^%d)", current -> coefficient, current -> exponent);
+	current = current -> next;
+	strcat(str, term);
 	while (current != NULL) {
 		sprintf(term, "+(%dx^%d)", current -> coefficient, current -> exponent);
 		strcat(str, term);
@@ -283,3 +317,4 @@ char* toString(LinkedList* list) {
 
 	return str;
 }
+
