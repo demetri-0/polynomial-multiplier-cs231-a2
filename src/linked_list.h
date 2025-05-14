@@ -22,6 +22,8 @@ void deleteElement(LinkedList* list, int coefficient, int exponent);
 Node* searchElement(LinkedList* list, int coefficient, int exponent);
 int containsElement(LinkedList* list, int coefficient, int exponent);
 void combineLikeTerms(LinkedList* list);
+void removeZeroCoefficients(LinkedList* list);
 char* toString(LinkedList* list);
+void freeList(LinkedList* list);
 
 

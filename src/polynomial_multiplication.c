@@ -4,34 +4,40 @@
 
 #include "linked_list.h"
 
+#define MAX_LINE_LENGTH 255
+
 void doPolynomialMultiplication(char* polynomialsStr);
 
 int main() {
 
 	setvbuf(stdout, NULL, _IONBF, 0);
 
-//	char* inputFileName = "/0";
+//	char inputFileName[256];
 //
 //	printf("Welcome to Polynomial Multiplication!\n");
 //	printf("Please enter the name of the file: ");
 //	scanf("%s", inputFileName);
 //	printf("\n");
-//
-//	FILE  *inputFile;
-//	inputFile = fopen(inputFileName, "r");
-//	if (inputFile == NULL) {
-//		printf ("Input file could not be opened.\n");
-//		return 1;
-//	}
-//	else {
-//
-//
-//	}
-//	fclose(inputFile);
 
-	char* input = "2,1;1,0* 3,2;4,0";
-	printf("Raw Input: %s\n", input);
-	doPolynomialMultiplication(input);
+	FILE  *inputFile;
+	inputFile = fopen("test.txt", "r");
+	if (inputFile == NULL) {
+		printf ("Input file could not be opened.\n");
+		return 1;
+	}
+	else {
+		char inputLine[MAX_LINE_LENGTH];
+
+		while (fgets(inputLine, MAX_LINE_LENGTH, inputFile) != NULL) {
+			int indexOfNewline = strcspn(inputLine, "\n");
+			inputLine[indexOfNewline] = '\0';
+
+			printf("Raw Input: %s\n", inputLine);
+
+			doPolynomialMultiplication(inputLine);
+		}
+	}
+	fclose(inputFile);
 
 //	LinkedList* list = initList();
 //	insertFirst(list, 3, 2);
@@ -70,7 +76,6 @@ void doPolynomialMultiplication(char* polynomialsStr) {
 	char* poly2Str;
 
 	char* asteriskToEnd = strchr(polynomialsStr, '*');
-	poly2Str = (char*)malloc(strlen(asteriskToEnd + 2) * sizeof(char));
 	poly2Str = asteriskToEnd + 2;
 
 	int poly1StrLen = asteriskToEnd - polynomialsStr;
@@ -78,9 +83,8 @@ void doPolynomialMultiplication(char* polynomialsStr) {
 	strcpy(poly1Str, polynomialsStr);
 	poly1Str[poly1StrLen] = '\0';
 
-	printf("Polynomial 1: %s /// Polynomial 2: %s\n\n", poly1Str, poly2Str);
-
-	int termStart, termEnd, termLength;
+	//printf("Polynomial 1: %s /// Polynomial 2: %s\n\n", poly1Str, poly2Str);
+	int termStart, termEnd = -1, termLength;
 	int coefficient, exponent;
 	for (int i = 0; i < strlen(poly1Str) + 1; i++) {
 
@@ -99,15 +103,19 @@ void doPolynomialMultiplication(char* polynomialsStr) {
 
 			sscanf(term, "%d,%d", &coefficient, &exponent);
 			insertSorted(polynomial1, coefficient, exponent);
+
+			free(term);
 		}
 	}
 
+	termEnd = -1;
 	for (int i = 0; i < strlen(poly2Str) + 1; i++) {
 
 		if (i == 0 || i == termEnd + 1) {
 			termStart = i;
 		}
 		else if (poly2Str[i] == ';' || poly2Str[i] == '\0') {
+
 			termEnd = i;
 
 			termLength = termEnd - termStart;
@@ -119,15 +127,20 @@ void doPolynomialMultiplication(char* polynomialsStr) {
 
 			sscanf(term, "%d,%d", &coefficient, &exponent);
 			insertSorted(polynomial2, coefficient, exponent);
+
+			free(term);
 		}
 	}
-	printf("Poly1 before combining terms: %s\n", toString(polynomial1));
-	combineLikeTerms(polynomial1);
-	printf("Poly1 after combining terms: %s\n", toString(polynomial1));
 
-	printf("Poly2 before combining terms: %s\n", toString(polynomial2));
-	combineLikeTerms(polynomial2);
-	printf("Poly2 after combining terms: %s\n", toString(polynomial2));
+	free(poly1Str);
+
+//	printf("Poly1 before combining terms: %s\n", toString(polynomial1));
+//	combineLikeTerms(polynomial1);
+//	printf("Poly1 after combining terms: %s\n", toString(polynomial1));
+//
+//	printf("Poly2 before combining terms: %s\n", toString(polynomial2));
+//	combineLikeTerms(polynomial2);
+//	printf("Poly2 after combining terms: %s\n", toString(polynomial2));
 
 	LinkedList* result = initList();
 	Node* currentPoly1Node = polynomial1 -> head;
@@ -149,9 +162,22 @@ void doPolynomialMultiplication(char* polynomialsStr) {
 	}
 
 	combineLikeTerms(result);
-	printf("Product: %s\n\n", toString(result));
+	removeZeroCoefficients(result);
+	//printf("Product: %s\n\n", toString(result));
 
-	printf("%s times %s is %s", toString(polynomial1), toString(polynomial2), toString(result));
+	char* poly1OutputStr = toString(polynomial1);
+	char* poly2OutputStr = toString(polynomial2);
+	char* resultStr = toString(result);
+
+	printf("Result: %s times %s is %s\n\n", poly1OutputStr, poly2OutputStr, resultStr);
+
+	free(poly1OutputStr);
+	free(poly2OutputStr);
+	free(resultStr);
+
+	freeList(polynomial1);
+	freeList(polynomial2);
+	freeList(result);
 }
 
 
