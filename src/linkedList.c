@@ -1,13 +1,30 @@
+/*
+	Author: Demetri Karras
+	Assignment Number: 2
+	Date of Submission: May 15th, 2025
+
+	File Name: linkedList.c
+
+	Description:
+	With regard to the linked list, this file is responsible for
+	defining the linked list and node structure, implementing insertion,
+	deletion, and search functionality, and providing a way to free all
+	allocated memory. There are also a two functions specific to the
+	polynomial-based implementation.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+// represents a single term of a polynomial
 typedef struct Node {
 	int coefficient;
 	int exponent;
 	struct Node *next;
 } Node;
 
+// contains the terms of a single polynomial as nodes
 typedef struct LinkedList {
 	Node* head;
 	Node* tail;
@@ -29,9 +46,9 @@ LinkedList* initList() {
 
 	LinkedList* list = (LinkedList*)malloc(sizeof(LinkedList));
 
-	list -> head = NULL;
-	list -> tail = NULL;
-	list -> size = 0;
+	list->head = NULL;
+	list->tail = NULL;
+	list->size = 0;
 
 	return list;
 }
@@ -52,7 +69,7 @@ int isEmpty(LinkedList* list) {
 
 	int emptyStatus;
 
-	if (list -> head == NULL) {
+	if (!list || list->head == NULL) {
 		emptyStatus = 1;
 	}
 	else {
@@ -79,17 +96,21 @@ int isEmpty(LinkedList* list) {
 void insertFirst(LinkedList* list, int coefficient, int exponent) {
 
 	Node* node = (Node*)malloc(sizeof(Node));
+	node->coefficient = coefficient;
+	node->exponent = exponent;
 
-	node -> coefficient = coefficient;
-	node -> exponent = exponent;
-	node -> next = list -> head;
-	list -> head = node;
+	/*
+	 * Assigns the node's next pointer to the current head, then makes the node
+	 * the new head.
+	 */
+	node->next = list->head;
+	list->head = node;
 
-	if (list -> tail == NULL) {
-		list -> tail = node;
+	if (list->tail == NULL) { // If the list is empty, the node also becomes the tail.
+		list->tail = node;
 	}
 
-	list -> size++;
+	list->size++;
 }
 
 /*
@@ -108,22 +129,25 @@ void insertFirst(LinkedList* list, int coefficient, int exponent) {
 void insertLast(LinkedList* list, int coefficient, int exponent) {
 
 	Node* node = (Node*)malloc(sizeof(Node));
+	node->coefficient = coefficient;
+	node->exponent = exponent;
 
-	node -> coefficient = coefficient;
-	node -> exponent = exponent;
-
+	/*
+	 * Assigns the current tail's next node as the new node. The tail pointer is
+	 * then assigned to the new node, who's next node is set to NULL.
+	 */
 	if (!isEmpty(list)) {
-		list -> tail -> next = node;
-		list -> tail = node;
-		node -> next = NULL;
+		list->tail->next = node;
+		list->tail = node;
+		node->next = NULL;
 	}
-	else {
-		list -> head = node;
-		list -> tail = node;
-		node -> next = NULL;
+	else { // If the list is empty, the new node becomes the head and tail.
+		list->head = node;
+		list->tail = node;
+		node->next = NULL;
 	}
 
-	list -> size++;
+	list->size++;
 }
 
 /*
@@ -149,26 +173,37 @@ void insertAfter(LinkedList* list, int coefficient, int exponent, int coefficien
 
 	if (!isEmpty(list)) {
 
-		Node* current = list -> head;
+		Node* current = list->head;
 
-		while (current != NULL && (current -> coefficient != coefficientToFind || current -> exponent != exponentToFind)) {
-			current = current -> next;
+		/*
+		 * Iterates through list until the specified node is found, reflected
+		 * in current.
+		 */
+		while (current != NULL && (current->coefficient != coefficientToFind || current->exponent != exponentToFind)) {
+			current = current->next;
 		}
 
+		/*
+		 * Inserts the new node after the specified node, if it exists.
+		 */
 		if (current != NULL) {
 
 			Node* node = (Node*)malloc(sizeof(Node));
+			node->coefficient = coefficient;
+			node->exponent = exponent;
 
-			node -> coefficient = coefficient;
-			node -> exponent = exponent;
-
-			if (current == list -> tail) {
-				list -> tail = node;
+			if (current == list->tail) { // Updates tail if needed.
+				list->tail = node;
 			}
-			node -> next = current -> next;
-			current -> next = node;
 
-			list -> size++;
+			/*
+			 * Assigns the new node's next node as current's next node, and
+			 * assigns current's next node to the new node.
+			 */
+			node->next = current->next;
+			current->next = node;
+
+			list->size++;
 		}
 	}
 }
@@ -189,42 +224,72 @@ void insertAfter(LinkedList* list, int coefficient, int exponent, int coefficien
  */
 void insertSorted(LinkedList* list, int coefficient, int exponent) {
 
-    Node* node = (Node*)malloc(sizeof(Node));
-    node->coefficient = coefficient;
-    node->exponent = exponent;
-    node->next = NULL;
+    if (!isEmpty(list)) {
 
-    if (isEmpty(list)) {
-        list->head = node;
-        list->tail = node;
+    	/*
+    	 * If the exponent of the new node is greater than or equal to the
+    	 * exponent of the head term, the new node becomes the head.
+    	 */
+    	if (list->head->exponent <= exponent) {
+    		insertFirst(list, coefficient, exponent);
+    	}
+    	/*
+    	 * If the exponent of the new node is less than or equal to the exponent
+    	 * of the tail term, the new node becomes the tail.
+    	 */
+    	else if (list->tail->exponent >= exponent) {
+    		insertLast(list, coefficient, exponent);
+    	}
+    	/*
+    	 * Handles case where the sorted node falls in the middle of the list.
+    	 */
+    	else {
+
+    		Node* node = (Node*)malloc(sizeof(Node));
+			node->coefficient = coefficient;
+			node->exponent = exponent;
+
+    		/*
+    		 * Iterates through a non-empty list using prev and current as
+    		 * pointers to nodes. If the new node has an exponent that is
+    		 * greater than or equal to the current node, it is inserted before
+    		 * it.
+    		 */
+			Node* prev = NULL;
+    		Node* current = list->head;
+
+    		/*
+    		 * Finds new node's insertion point.
+    		 */
+    		while (current != NULL && (exponent < current->exponent)) {
+    			prev = current;
+    			current = current->next;
+    		}
+
+    		/*
+    		 * Inserts new node between prev and current.
+    		 */
+    		prev->next = node;
+    		node->next = current;
+
+    		list->size++;
+    	}
     }
-    else if (exponent > list->head->exponent) {
-        node->next = list->head;
-        list->head = node;
-    }
+    /*
+     * If the list is empty, the new node becomes the head and tail.
+     */
     else {
-        Node* current = list->head;
-        Node* prev = NULL;
 
-        while (current != NULL && exponent <= current->exponent) {
-            prev = current;
-            current = current->next;
-        }
+    	Node* node = (Node*)malloc(sizeof(Node));
+		node->coefficient = coefficient;
+		node->exponent = exponent;
+		node->next = NULL;
 
-        node->next = current;
-        if (prev != NULL) {
-            prev->next = node;
-        }
+    	list->head = node;
+    	list->tail = node;
 
-        // If inserted at the end, update tail
-        if (node->next == NULL) {
-            list->tail = node;
-        }
+    	list->size++;
     }
-
-    list->size++;
-
-
 }
 
 
@@ -243,19 +308,26 @@ void deleteFirst(LinkedList* list) {
 
 	if (!isEmpty(list)) {
 
-		Node* toDelete = list -> head;
+		Node* toDelete = list->head;
 
-		if (list -> head -> next != NULL) {
-			list -> head = list -> head -> next;
+		/*
+		 * Handles case for multi-element list, assigning head to the current
+		 * head's next node.
+		 */
+		if (list->head->next != NULL) {
+			list->head = list->head->next;
 		}
+		/*
+		 * Handles case for single-element list.
+		 */
 		else {
-			list -> head = NULL;
-			list -> tail = NULL;
+			list->head = NULL;
+			list->tail = NULL;
 		}
 
 		free(toDelete);
 
-		list -> size--;
+		list->size--;
 	}
 }
 
@@ -274,26 +346,34 @@ void deleteLast(LinkedList* list) {
 
 	if (!isEmpty(list)) {
 
-		Node* toDelete = list -> tail;
+		Node* toDelete = list->tail;
 
-		if (list -> head -> next != NULL) {
+		/*
+		 * Handles case for a multi-element list, iterating to the node for
+		 * which the next node is the tail, and assigning that node as the new
+		 * tail.
+		 */
+		if (list->head->next != NULL) {
 
 			Node* current = list -> head;
 
-			while (current -> next != list -> tail) {
-				current = current -> next;
+			while (current->next != list->tail) {
+				current = current->next;
 			}
 
-			list -> tail = current;
-			current -> next = NULL;
+			list->tail = current;
+			current->next = NULL;
 		}
+		/*
+		 * Handles case for a single-element list.
+		 */
 		else {
-			list -> head = NULL;
-			list -> tail = NULL;
+			list->head = NULL;
+			list->tail = NULL;
 		}
 
 		free(toDelete);
-		list -> size--;
+		list->size--;
 	}
 }
 
@@ -317,16 +397,16 @@ void replaceElement(LinkedList* list, int coefficientToReplace, int exponentToRe
 
 	if (!isEmpty(list)) {
 
-		Node* current = list -> head;
+		Node* current = list->head;
 
 		while (current != NULL) {
 
-			if (current -> coefficient == coefficientToReplace && current -> exponent == exponentToReplace) {
-				current -> coefficient = newCoefficient;
-				current -> exponent = newExponent;
+			if (current->coefficient == coefficientToReplace && current->exponent == exponentToReplace) {
+				current->coefficient = newCoefficient;
+				current->exponent = newExponent;
 			}
 
-			current = current -> next;
+			current = current->next;
 		}
 	}
 }
@@ -348,26 +428,26 @@ void deleteElement(LinkedList* list, int coefficient, int exponent) {
 
 	if (!isEmpty(list)) {
 
-		if ((list -> head -> coefficient == coefficient) && (list -> head -> exponent == exponent)) {
+		if ((list->head->coefficient == coefficient) && (list->head->exponent == exponent)) {
 			deleteFirst(list);
 		}
-		else if ((list -> tail -> coefficient == coefficient) && (list -> tail -> exponent == exponent)) {
+		else if ((list->tail->coefficient == coefficient) && (list->tail->exponent == exponent)) {
 			deleteLast(list);
 		}
 		else {
-			Node* current = list -> head;
+			Node* current = list->head;
 
-			while (current != list -> tail && !(current -> next -> coefficient == coefficient && current -> next -> exponent == exponent)) {
-				current = current -> next;
+			while (current != list->tail && !(current->next->coefficient == coefficient && current->next->exponent == exponent)) {
+				current = current->next;
 			}
 
-			if (current != list -> tail) {
-				Node* toDelete = current -> next;
+			if (current != list->tail) {
+				Node* toDelete = current->next;
 
-				current -> next = current -> next -> next;
+				current->next = current->next->next;
 
 				free(toDelete);
-				list -> size--;
+				list->size--;
 			}
 		}
 	}
@@ -391,15 +471,19 @@ Node* searchElement(LinkedList* list, int coefficient, int exponent) {
 
 	Node* result;
 
-	Node* current = list -> head;
-	while (current != NULL && !(current -> coefficient == coefficient && current -> exponent == exponent)) {
-		current = current -> next;
+	/*
+	 * Iterates through the list, stopping at the first node with the same
+	 * coefficient and exponent as provided.
+	 */
+	Node* current = list->head;
+	while (current != NULL && !(current->coefficient == coefficient && current->exponent == exponent)) {
+		current = current->next;
 	}
 
 	if (current != NULL) {
 		result = current;
 	}
-	else {
+	else { // If current is NULL, the end of the list was reached, and the term wasn't found.
 		result = NULL;
 	}
 
@@ -450,30 +534,30 @@ int containsElement(LinkedList* list, int coefficient, int exponent) {
 void combineLikeTerms(LinkedList* list) {
 
 	if (!isEmpty(list)) {
-		Node* current = list -> head;
+
+		Node* current = list->head;
 
 		while (current != NULL) {
 
-			while (current -> next != NULL && (current -> next -> exponent == current -> exponent)) {
+			while (current->next != NULL && (current->next->exponent == current->exponent)) {
 
-				current -> coefficient += current -> next -> coefficient;
+				current->coefficient += current->next->coefficient;
 
-				Node* toDelete = current -> next;
+				Node* toDelete = current->next;
 
-				if (toDelete == list -> head) {
-					deleteFirst(list);
-				}
-				else if (toDelete == list -> tail) {
-					deleteLast(list);
+				if (toDelete == list->tail) {
+					current->next = current->next->next;
+					list->tail = current;
+					list->size--;
 				}
 				else {
-					current -> next = current -> next -> next;
+					current->next = current->next->next;
 					free(toDelete);
-					list -> size--;
+					list->size--;
 				}
 			}
 
-			current = current -> next;
+			current = current->next;
 		}
 	}
 }
@@ -486,31 +570,48 @@ void combineLikeTerms(LinkedList* list) {
  *
  * Output: None - changes are reflected in the input linked list.
  *
- * Description:
+ * Description: Deletes all terms from the provided linked list with
+ * coefficients of zero.
  */
 void removeZeroCoefficients(LinkedList* list) {
 
 	if (!isEmpty(list)) {
 
-		Node* current = list -> head;
+		/*
+		 * Iterates through a non-empty list using prev and current as pointers
+		 * to nodes. If the coefficient of a node is 0, that node is removed.
+		 * Cases for the head, tail, and middle nodes are all handled
+		 * appropriately.
+		 */
+		Node* prev = NULL;
+		Node* current = list->head;
+
 		while (current != NULL) {
-			while (current -> next != NULL && current -> next -> coefficient == 0) {
 
-				Node* toDelete = current -> next;
+			if (current->coefficient == 0) {
 
-				if (toDelete == list -> head) {
-					deleteFirst(list);
+				Node* toDelete = current;
+
+				if (current == list->head) { // Handles head node.
+					current = current->next;
+					list->head = current;
 				}
-				else if (toDelete == list -> tail) {
-					deleteLast(list);
+				else { // Handles all non-head nodes.
+					prev->next = current->next;
+					current = current->next;
+
+					if (toDelete == list->tail) { // Reassigns tail.
+						list->tail = prev;
+					}
 				}
-				else {
-					current -> next = current -> next -> next;
-					free(toDelete);
-					list -> size--;
-				}
+
+				free(toDelete);
+				list->size--;
 			}
-			current = current -> next;
+			else {
+				prev = current;
+				current = current->next;
+			}
 		}
 	}
 }
@@ -524,29 +625,90 @@ void removeZeroCoefficients(LinkedList* list) {
  * Output: Returns a string representing the list.
  *
  * Description: Provides a visual representation of the contents and order of
- * the given linked list. Nodes represent terms, and are structured as
- * (<coefficient>^<exponent>). The formatted string contains every node in the
- * order they were added, separated by + signs.
+ * the given linked list. Nodes represent terms, and are generally structured as
+ * <coefficient>^<exponent>. The formatted string contains every node in the
+ * order they were added, separated by the appropriate sign.
  */
 char* toString(LinkedList* list) {
 
+	/*
+	 * Initializes the string containing the representations of the linked
+	 * list.
+	 */
 	const int maxTermLength = 25;
-	char* str = (char*)malloc(((list -> size) * maxTermLength) * sizeof(char));
+	char* str = (char*)malloc(((list->size) * maxTermLength) * sizeof(char));
 	str[0] = '\0';
 
-	Node* current = list -> head;
-	char* term = (char*)malloc(maxTermLength * sizeof(char));
-	sprintf(term, "(%dx^%d)", current -> coefficient, current -> exponent);
-	current = current -> next;
-	strcat(str, term);
-	while (current != NULL) {
-		sprintf(term, "+(%dx^%d)", current -> coefficient, current -> exponent);
-		strcat(str, term);
+	if (!isEmpty(list)) {
 
-		current = current -> next;
+		/*
+		 * Initializes the string containing a term of the linked list. Term is
+		 * structured as <coefficient>^<exponent>.
+		 */
+		Node* current = list->head;
+		char* term = (char*)malloc(maxTermLength * sizeof(char));
+
+
+		/*
+		 * Iterates through every node in the list, assigning the term pointer
+		 * to an appropriate string representation of the node.
+		 */
+		while (current != NULL) {
+
+			/*
+			 * If current is the head, leading operators are removed.
+			 */
+			if (current == list->head) {
+				if (current->exponent == 0) {
+					sprintf(term, "%d", current->coefficient);
+				}
+				else if (current->exponent == 1) {
+					sprintf(term, "%dx", current->coefficient);
+				}
+				else {
+					sprintf(term, "%dx^%d", current->coefficient, current->exponent);
+				}
+			}
+			/*
+			 * If the coefficient of current is positive, + is used to separate
+			 * terms.
+			 */
+			else if (current->coefficient > 0){
+				if (current->exponent == 0) {
+					sprintf(term, " + %d", current->coefficient);
+				}
+				else if (current->exponent == 1) {
+					sprintf(term, " + %dx", current->coefficient);
+				}
+				else {
+					sprintf(term, " + %dx^%d", current->coefficient, current->exponent);
+				}
+			}
+			/*
+			 * If the coefficient of current is negative, - is used to separate
+			 * terms.
+			 */
+			else {
+				if (current->exponent == 0) {
+					sprintf(term, " - %d", (current->coefficient) * -1);
+				}
+				else if (current->exponent == 1) {
+					sprintf(term, " - %dx", (current->coefficient) * -1);
+				}
+				else {
+					sprintf(term, " - %dx^%d", (current->coefficient) * -1, current->exponent);
+				}
+			}
+
+			current = current->next;
+			strcat(str, term);
+		}
+
+		free(term);
 	}
-
-	free(term);
+	else { // If the list is empty, it represents 0.
+		strcat(str, "0");
+	}
 
 	return str;
 }
@@ -565,17 +727,25 @@ char* toString(LinkedList* list) {
  */
 void freeList(LinkedList* list) {
 
+	/*
+	 * Iterates through each node of a non-empty list, effectively freeing them
+	 * all.
+	 */
 	if (!isEmpty(list)) {
 
-		Node* current = list -> head;
+		Node* current = list->head;
 		Node* temp;
 
 		while (current != NULL) {
-			temp = current -> next;
+			temp = current->next;
 			free(current);
 			current = temp;
 		}
 	}
+
+	list->head = NULL;
+	list->tail = NULL;
+	list->size = 0;
 
 	free(list);
 }
